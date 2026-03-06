@@ -10,27 +10,31 @@
       rel="stylesheet"
       type="text/css"
     />
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   </head>
   <body>
     <div class="h-screen bg-gray-300 flex items-center flex-col justify-center">
       <div
-        class="h-[700px] flex flex-col items-center relative bg-gray-100 rounded-md max-w-md"
+        class="h-[700px] flex flex-col items-center relative bg-gray-100 rounded-md max-w-md overflow-y-auto"
       >
-        <div class="w-full py-8 px-12">
+        <div class="w-full py-8 px-12 flex flex-col items-center">
           <header>
             <h1 class="text-center">Total de descansos</h1>
             <div
               class="mt-2 border-2 border-white rounded-md px-15 py-4 text-4xl font-bold shadow-xl/10 bg-white"
             >
-              <h2 class="text-center align-center">00:35:55</h2>
+              <h2 id="total-global" class="text-center align-center">
+                00:35:55
+              </h2>
             </div>
           </header>
 
           <hr class="mt-12 border-gray-300 border w-4/5 max-w-2xs" />
 
-          <main class="mt-10">
-            <section>
+          <main id="break-list" class="mt-10">
+            <!-- <section>
+              
               <header class="flex justify-between px-3">
                 <div>
                   <span>PDV</span>
@@ -255,12 +259,12 @@
                   </div>
                 </div>
               </div>
-            </section>
+            </section> -->
           </main>
         </div>
 
         <button
-          class="px-4 py-2 border border-teal-500 bg-teal-500 hover:border-teal-600 hover:bg-teal-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in"
+          class="px-4 py-2 border border-teal-500 bg-teal-500 hover:border-teal-600 hover:bg-teal-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in mb-10"
           onclick="my_modal_1.showModal()"
         >
           Añadir
@@ -270,28 +274,55 @@
             <h3 class="text-lg font-bold">Añadir descanso</h3>
             <div>
               <form
+                id="break-form"
                 method="dialog"
                 class="w-full max-w-2xs flex items-center flex-col"
               >
                 <fieldset class="fieldset w-full">
                   <legend class="fieldset-legend">Nombre</legend>
-                  <input type="text" class="input" value="PVD" />
+                  <input
+                    type="text"
+                    class="input"
+                    value="PVD"
+                    name="input-name"
+                    id="input-name"
+                    required
+
+                  />
                 </fieldset>
                 <fieldset class="fieldset w-full">
                   <legend class="fieldset-legend">Tiempo</legend>
-                  <input type="time" class="input" value="05:00" />
+                  <input
+                    type="time"
+                    class="input"
+                    value="05:00"
+                    name="input-time"
+                    id="input-time"
+                    required
+
+                  />
                 </fieldset>
                 <fieldset class="fieldset w-full">
                   <legend class="fieldset-legend">Cantidad de descansos</legend>
-                  <input type="number" class="input" value="1" />
+                  <input
+                    type="number"
+                    class="input"
+                    value="1"
+                    name="input-breaks"
+                    id="input-breaks"
+                    required
+                  />
                 </fieldset>
                 <div class="w-full flex gap-2 justify-end mt-3">
                   <button
+                    type="button"
+                    onclick="document.getElementById('my_modal_1').close()"
                     class="px-4 py-2 border border-red-500 bg-red-500 hover:border-red-600 hover:bg-red-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in"
                   >
                     Cancelar
                   </button>
                   <button
+                    type="submit"
                     class="px-4 py-2 border border-teal-500 bg-teal-500 hover:border-teal-600 hover:bg-teal-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in"
                   >
                     Guardar
@@ -304,4 +335,5 @@
       </div>
     </div>
   </body>
+  <script src="script.js"></script>
 </html>
