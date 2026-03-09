@@ -13,6 +13,7 @@ function save() {
 // 3. Crear nuevo descanso
 form.addEventListener("submit", (e) => {
   e.preventDefault();
+  
 
   // 1. VALIDACIÓN DE LÍMITE: Si no estamos editando y ya hay 4, detenemos la ejecución
   if (!editId && descansos.length >= 3) {
@@ -51,6 +52,7 @@ form.addEventListener("submit", (e) => {
       segundosActuales: 0,
       estado: "stopped",
       historial: [],
+      fechaCreacion: new Date().toISOString()
     };
     descansos.push(nuevoDescanso);
   }
@@ -86,14 +88,13 @@ function render() {
     // 1. Calculamos el exceso acumulado de todas las sesiones
     const excesoTotalSegundos = d.historial.reduce((acc, sesion) => acc + (sesion.exceso || 0), 0);
     // 4. Obtener el exceso de la última sesión si existe
-    const ultimaSesion = d.historial[d.historial.length - 1];
     const excesoTexto = excesoTotalSegundos > 0
       ? `<span class="text-red-600 font-bold"> +${formatTime(excesoTotalSegundos)}</span>`
       : "";
 
     listaContainer.innerHTML += `
-    <section class="mt-6">
-      <header class="flex justify-between px-3">
+    <section class="mt-6 cursor-pointer group" onclick="abrirHistorial(event, ${d.id})">
+      <header class="flex justify-between px-3  transition-transform">
         <div>
           <span class="${esEstadoFinalizado ? "font-semibold text-gray-500" : "font-semibold text-gray-800"}">${d.nombre}</span>
         </div>
@@ -106,25 +107,25 @@ function render() {
         </div>
       </header>
 
-              <div class="flex justify-between items-center px-2 py-2 mt-2 ${borderClass} border-2 ${containerBgClass} rounded-md shadow-xl/10 gap-4 transition-colors duration-300">
-                
-                <div onclick="prepararEdicion(${d.id})"
-                  class="px-2 py-1 border border-gray-300 hover:bg-gray-200 border-1 rounded-md cursor-pointer active:scale-95 easy-in"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                    <path fill="#999999" d="M4.42 20.579a1 1 0 0 1-.737-.326a.988.988 0 0 1-.263-.764l.245-2.694L14.983 5.481l3.537 3.536L7.205 20.33l-2.694.245a.95.95 0 0 1-.091.004ZM19.226 8.31L15.69 4.774l2.121-2.121a1 1 0 0 1 1.415 0l2.121 2.121a1 1 0 0 1 0 1.415l-2.12 2.12l-.001.001Z" />
-                  </svg>
-                </div>
+      <div class="flex justify-between items-center px-2 py-2 mt-2 ${borderClass} border-2 ${containerBgClass} rounded-md shadow-xl/10 gap-4 transition-colors duration-300">
+        
+        <div onclick="prepararEdicion(${d.id})"
+          class="px-2 py-1 border border-gray-300 hover:bg-gray-200 border-1 rounded-md cursor-pointer active:scale-95 easy-in"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="#999999" d="M4.42 20.579a1 1 0 0 1-.737-.326a.988.988 0 0 1-.263-.764l.245-2.694L14.983 5.481l3.537 3.536L7.205 20.33l-2.694.245a.95.95 0 0 1-.091.004ZM19.226 8.31L15.69 4.774l2.121-2.121a1 1 0 0 1 1.415 0l2.121 2.121a1 1 0 0 1 0 1.415l-2.12 2.12l-.001.001Z" />
+          </svg>
+        </div>
 
-                <div class="px-3 py-1 font-semibold text-xl font-mono ${timeStatusClass} px-2 rounded">
-                  ${formatTime(d.segundosActuales)}
-                </div>
+        <div class="px-3 py-1 font-semibold text-xl font-mono ${timeStatusClass} px-2 rounded">
+          ${formatTime(d.segundosActuales)}
+        </div>
 
-                <div class="flex gap-2">
-                  ${renderButtons(d)}
-                </div>
-              </div>
-            </section>
+        <div class="flex gap-2">
+          ${renderButtons(d)}
+        </div>
+      </div>
+    </section>
         `;
   });
   actualizarTotalGlobal();
@@ -159,20 +160,17 @@ setInterval(() => {
     render();
   }
 }, 1000);
-
 function startTimer(id) {
-  // 1. Buscamos todos los descansos que no sean el actual y estén corriendo
-  descansos.forEach((item) => {
-    if (item.id !== id && item.estado === "running") {
-      item.estado = "paused";
-    }
-  });
+  descansos.forEach(item => { if (item.id !== id) item.estado = "paused"; });
 
-  // 2. Buscamos el descanso actual y lo activamos
-  const d = descansos.find((item) => item.id === id);
+  const d = descansos.find(item => item.id === id);
   if (d) {
+    // CAPTURAMOS EL INICIO: Solo si el cronómetro está en 0 (inicio de sesión)
+    if (d.segundosActuales === 0) {
+      d.ultimaHoraInicio = new Date().toISOString();
+    }
     d.estado = "running";
-    save(); // Al guardar, se ejecutará render() y verás los cambios en todos
+    save();
   }
 }
 
@@ -184,41 +182,43 @@ function pauseTimer(id) {
 
 function stopTimer(id) {
   const d = descansos.find((item) => item.id === id);
+  if (!d) return;
 
-  // Calcular exceso de ESTA sesión
+  // Calculamos si hubo exceso
   const exceso = d.segundosActuales > d.tiempoObjetivo ? d.segundosActuales - d.tiempoObjetivo : 0;
 
-  // Guardar en historial
+  // GUARDAR EN HISTORIAL: Usamos "fin" para que coincida con el modal
   d.historial.push({
     duracion: d.segundosActuales,
     exceso: exceso,
-    timestamp: Date.now(),
+    fin: new Date().toISOString() // Cambiado de timestamp a fin
   });
 
   d.completados++;
   d.segundosActuales = 0;
-
-  // LÓGICA NUEVA: ¿Se han terminado todos los descansos?
-  if (d.completados >= d.cantidadTotal) {
-    d.estado = "stopped"; // Aquí el render ya sabe que es el final real
-  } else {
-    d.estado = "stopped"; // Sigue en stopped, pero d.completados < d.cantidadTotal
-  }
+  d.estado = "stopped";
 
   save();
 }
-
 function undoLast(id) {
   const d = descansos.find((item) => item.id === id);
-  if (d.historial.length > 0) {
-    d.historial.pop(); // Borramos la última sesión del historial
-    d.completados--;
+  if (!d) return;
 
-    // CAMBIO AQUÍ: De 'paused' a 'stopped' para quitar el naranja/parpadeo
+  // CASO A: Si el cronómetro está en pausa, simplemente lo reseteamos a cero
+  if (d.estado === "paused") {
+    d.segundosActuales = 0;
     d.estado = "stopped";
-
-    save();
+    // No restamos 'completados' aquí porque solo estamos reseteando el tiempo actual
   }
+  // CASO B: Si no está en pausa pero hay historial, borramos la última sesión
+  else if (d.historial.length > 0) {
+    d.historial.pop();
+    d.completados--;
+    d.segundosActuales = 0;
+    d.estado = "stopped";
+  }
+
+  save(); // Esto guarda y refresca la interfaz
 }
 
 function renderButtons(d) {
@@ -244,6 +244,14 @@ function renderButtons(d) {
           </svg>
         </div>
       </div>
+
+      <div onclick="undoLast(${d.id})"
+          class="px-2 py-1 border border-gray-300 bg-gray-200 rounded-md opacity-50 text-white cursor-auto"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="#999999" d="M12 4c2.1 0 4.1.8 5.6 2.3c3.1 3.1 3.1 8.2 0 11.3c-1.8 1.9-4.3 2.6-6.7 2.3l.5-2c1.7.2 3.5-.4 4.8-1.7c2.3-2.3 2.3-6.1 0-8.5C15.1 6.6 13.5 6 12 6v4.6l-5-5l5-5zM6.3 17.6C3.7 15 3.3 11 5.1 7.9l1.5 1.5c-1.1 2.2-.7 5 1.2 6.8q.75.75 1.8 1.2l-.6 2q-1.5-.6-2.7-1.8" />
+          </svg>
+        </div>
     `;
   }
 
@@ -256,6 +264,13 @@ function renderButtons(d) {
             <path d="M5 5v14a2 2 0 0 0 2.75 1.84L20 13.74a2 2 0 0 0 0-3.5L7.75 3.14A2 2 0 0 0 5 4.89" fill="none" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
+        <div class='px-2 py-1 border border-gray-300 bg-gray-200 rounded-md opacity-50 cursor-auto'"
+        class="px-2 py-1 border border-indigo-400 bg-indigo-400 rounded-md text-white hover:border-indigo-500 hover:bg-indigo-500 cursor-pointer active:scale-95 easy-in"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16">
+          <path fill="#999999" fill-rule="evenodd" d="M11.5 3h-7A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3m-7-1.5a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3v-7a3 3 0 0 0-3-3z" clip-rule="evenodd" />
+        </svg>
+      </div>
         <div onclick="undoLast(${d.id})"
           class="px-2 py-1 border border-indigo-400 bg-indigo-400 rounded-md text-white hover:border-indigo-500 hover:bg-indigo-500 cursor-pointer active:scale-95 easy-in"
         >
@@ -277,6 +292,7 @@ function renderButtons(d) {
           <path d="M5 5v14a2 2 0 0 0 2.75 1.84L20 13.74a2 2 0 0 0 0-3.5L7.75 3.14A2 2 0 0 0 5 4.89" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
+
       <div onclick="stopTimer(${d.id})"
         class="px-2 py-1 border border-indigo-400 bg-indigo-400 rounded-md text-white hover:border-indigo-500 hover:bg-indigo-500 cursor-pointer active:scale-95 easy-in"
       >
@@ -284,14 +300,21 @@ function renderButtons(d) {
           <path fill="#ffffff" fill-rule="evenodd" d="M11.5 3h-7A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3m-7-1.5a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3v-7a3 3 0 0 0-3-3z" clip-rule="evenodd" />
         </svg>
       </div>
-      ${d.completados > 0 ? `
+
+      ${(d.completados > 0 || d.estado === "paused") ? `
         <div onclick="undoLast(${d.id})"
           class="px-2 py-1 border border-indigo-400 bg-indigo-400 rounded-md text-white hover:border-indigo-500 hover:bg-indigo-500 cursor-pointer active:scale-95 easy-in"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path fill="#ffffff" d="M12 4c2.1 0 4.1.8 5.6 2.3c3.1 3.1 3.1 8.2 0 11.3c-1.8 1.9-4.3 2.6-6.7 2.3l.5-2c1.7.2 3.5-.4 4.8-1.7c2.3-2.3 2.3-6.1 0-8.5C15.1 6.6 13.5 6 12 6v4.6l-5-5l5-5zM6.3 17.6C3.7 15 3.3 11 5.1 7.9l1.5 1.5c-1.1 2.2-.7 5 1.2 6.8q.75.75 1.8 1.2l-.6 2q-1.5-.6-2.7-1.8" />
           </svg>
-        </div>` : ''}
+        </div>` : `
+        <div class="px-2 py-1 border border-gray-300 bg-gray-200 rounded-md text-white opacity-50 cursor-auto">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="#999999" d="M12 4c2.1 0 4.1.8 5.6 2.3c3.1 3.1 3.1 8.2 0 11.3c-1.8 1.9-4.3 2.6-6.7 2.3l.5-2c1.7.2 3.5-.4 4.8-1.7c2.3-2.3 2.3-6.1 0-8.5C15.1 6.6 13.5 6 12 6v4.6l-5-5l5-5zM6.3 17.6C3.7 15 3.3 11 5.1 7.9l1.5 1.5c-1.1 2.2-.7 5 1.2 6.8q.75.75 1.8 1.2l-.6 2q-1.5-.6-2.7-1.8" />
+          </svg>
+        </div>
+      `}
     </div>
   `;
 }
@@ -383,4 +406,68 @@ function stopTimer(id) {
   d.segundosActuales = 0;
   d.estado = "stopped";
   save();
+}
+
+function abrirHistorial(event, id) {
+  if (event.target.closest('div[onclick^="prepararEdicion"]') ||
+    event.target.closest('div[onclick^="startTimer"]') ||
+    event.target.closest('div[onclick^="pauseTimer"]') ||
+    event.target.closest('div[onclick^="stopTimer"]') ||
+    event.target.closest('div[onclick^="undoLast"]')) return;
+
+  const d = descansos.find(item => item.id === id);
+  if (!d) return;
+
+  const fechaCrea = d.fechaCreacion
+    ? new Date(d.fechaCreacion).toLocaleDateString() + " " + new Date(d.fechaCreacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : "---";
+
+  document.getElementById("historial-titulo").innerHTML = `
+    <div class="flex flex-col">
+      <span class="text-2xl font-bold text-gray-800">${d.nombre}</span>
+      <span class="text-[10px] font-normal text-gray-400 uppercase tracking-tighter mt-1">
+        Creado: ${fechaCrea}
+      </span>
+    </div>
+  `;
+
+  const body = document.getElementById("historial-lista-body");
+  body.innerHTML = "";
+
+  if (d.historial.length === 0) {
+    body.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-gray-400 italic font-light">Sin datos de finalización.</td></tr>`;
+  } else {
+    d.historial.forEach(s => {
+      // Verificamos si existe s.fin (por si hay datos viejos con s.timestamp)
+      const fechaReferencia = s.fin || s.timestamp;
+
+      if (!fechaReferencia) return; // Evita errores si la sesión está corrupta
+
+      const objFecha = new Date(fechaReferencia);
+      const fechaFin = objFecha.toLocaleDateString();
+      const horaFin = objFecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      body.innerHTML += `
+    <tr class="border-b hover:bg-gray-50 transition-colors text-sm text-left">
+      <td class="py-4">
+        <div class="font-medium text-gray-700">${horaFin}</div>
+        <div class="text-[10px] text-gray-400">${fechaFin}</div>
+      </td>
+      <td class="py-4 text-gray-500 font-medium">
+        ${formatTime(d.tiempoObjetivo)}
+      </td>
+      <td class="py-4 font-mono font-bold text-gray-800">
+        ${formatTime(s.duracion)}
+      </td>
+      <td class="py-4">
+        ${s.exceso > 0
+          ? `<span class="text-red-600 font-bold">+${formatTime(s.exceso)}</span>`
+          : `<span class="text-green-600 font-bold">00:00:00</span>`}
+      </td>
+    </tr>
+  `;
+    });
+  }
+
+  document.getElementById("modal_historial").showModal();
 }
