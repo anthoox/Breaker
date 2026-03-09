@@ -72,12 +72,13 @@ function render() {
 
     // 2. Lógica de Colores del Texto y Animación
     let timeStatusClass = "";
-    if (d.estado === "paused") {
+    if (d.estado === "paused" && d.segundosActuales > 0) {
+      // Solo parpadea si realmente hay tiempo contando
       timeStatusClass = "text-gray-600 animate-pulse";
     } else if (d.estado === "running") {
-      timeStatusClass = d.segundosActuales > d.tiempoObjetivo ? "text-red-600" : "text-gray-700";
+      timeStatusClass = d.segundosActuales > d.tiempoObjetivo ? "text-red-600 font-bold" : "text-gray-700";
     } else {
-      // Al ser 'stopped' ahora entrará aquí
+      // Si está stopped o pausado sin tiempo, se queda estático
       timeStatusClass = esEstadoFinalizado ? "text-gray-500" : "text-gray-800";
     }
 
@@ -161,11 +162,15 @@ setInterval(() => {
   }
 }, 1000);
 function startTimer(id) {
-  descansos.forEach(item => { if (item.id !== id) item.estado = "paused"; });
+  // Solo pausamos los que REALMENTE estén corriendo
+  descansos.forEach(item => {
+    if (item.id !== id && item.estado === "running") {
+      item.estado = "paused";
+    }
+  });
 
   const d = descansos.find(item => item.id === id);
   if (d) {
-    // CAPTURAMOS EL INICIO: Solo si el cronómetro está en 0 (inicio de sesión)
     if (d.segundosActuales === 0) {
       d.ultimaHoraInicio = new Date().toISOString();
     }
@@ -173,7 +178,6 @@ function startTimer(id) {
     save();
   }
 }
-
 function pauseTimer(id) {
   const d = descansos.find((item) => item.id === id);
   d.estado = "paused";
@@ -439,7 +443,7 @@ function abrirHistorial(event, id) {
   } else {
     d.historial.forEach(s => {
       // Verificamos si existe s.fin (por si hay datos viejos con s.timestamp)
-      const fechaReferencia = s.fin || s.timestamp;
+      const fechaReferencia = s.fin || s.timestamp || new Date().toISOString();
 
       if (!fechaReferencia) return; // Evita errores si la sesión está corrupta
 
