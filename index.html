@@ -2,43 +2,44 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Descansos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Breaker</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link
       href="https://cdn.jsdelivr.net/npm/daisyui@5"
       rel="stylesheet"
       type="text/css"
     />
+    <link rel="icon" type="image/x-icon" href="resources/despertador.ico">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   </head>
   <body>
     <div class="h-screen bg-gray-300 flex items-center flex-col justify-center">
       <div
-        class="h-[700px] flex flex-col items-center relative bg-gray-100 rounded-md max-w-md overflow-y-auto"
+        class="w-full h-screen md:h-[700px] md:max-w-md flex flex-col items-center justify-center relative bg-gray-100 rounded-md max-w-md overflow-y-auto"
       >
         <div class="w-full py-8 px-12 flex flex-col items-center">
           <header>
-            <h1 class="text-center">Total de descansos</h1>
+            <h1 class="text-center font-semibold text-lg m-3">Total de descansos</h1>
             <div
               class="mt-2 border-2 border-white rounded-md px-15 py-4 text-4xl font-bold shadow-xl/10 bg-white"
             >
-              <h2 id="total-global" class="text-center align-center">
+              <h2 id="total-global" class="text-center align-center font-mono ">
                 00:35:55
               </h2>
             </div>
           </header>
 
-          <hr class="mt-12 border-gray-300 border w-4/5 max-w-2xs" />
+          <hr class="mt-10 border-gray-300 border w-4/5 max-w-2xs" />
 
-          <main id="break-list" class="mt-3">
+          <main id="break-list">
 
           </main>
         </div>
 
         <button
-          class="absolute bottom-5 px-4 py-2 border border-teal-500 bg-teal-500 hover:border-teal-600 hover:bg-teal-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in mb-10"
+          class="mt-5 px-4 py-2 border border-teal-500 bg-teal-500 hover:border-teal-600 hover:bg-teal-600 rounded-sm text-white cursor-pointer active:scale-95 easy-in mb-10"
   onclick="abrirModalNuevo()"
         >
           <span>Agregar</span>
